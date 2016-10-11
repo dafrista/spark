@@ -400,6 +400,17 @@ class InsertIntoHiveTableSuite extends QueryTest with TestHiveSingleton with Bef
       }
   }
 
+  testPartitionedTable("SPARK-XXXXX: INSERT statement should support select *") {
+    tableName =>
+      withSQLConf("hive.exec.dynamic.partition.mode" -> "nonstrict") {
+        sql(s"INSERT OVERWRITE TABLE $tableName SELECT 1, 4, 2, 3")
+        checkAnswer(sql(s"SELECT * FROM $tableName"), Row(1, 4, 2, 3))
+        sql(s"CREATE TABLE output_table LIKE $tableName")
+        sql(s"INSERT OVERWRITE TABLE output_table PARTITION(b='2', c='3') SELECT * FROM $tableName")
+        checkAnswer(sql(s"SELECT * FROM output_table"), Row(1, 4, 2, 3))
+      }
+  }
+
   testPartitionedTable("INSERT INTO a partitioned table (semantic and error handling)") {
     tableName =>
       withSQLConf(("hive.exec.dynamic.partition.mode", "nonstrict")) {

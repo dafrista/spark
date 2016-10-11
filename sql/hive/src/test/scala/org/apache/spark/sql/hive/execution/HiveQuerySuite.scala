@@ -1039,6 +1039,22 @@ class HiveQuerySuite extends HiveComparisonTest with SQLTestUtils with BeforeAnd
     }
   }
 
+  test("SPARK-XXXXX: PreprocessTableInsertion static partitioning support for SELECT *") {
+    val analyzedPlan = {
+      loadTestTable("srcpart")
+      sql("DROP TABLE IF EXISTS withparts")
+      sql("CREATE TABLE withparts LIKE srcpart")
+      sql("INSERT OVERWRITE TABLE withparts PARTITION(ds='1', hr='2') SELECT * FROM srcpart")
+        .queryExecution.analyzed
+    }
+
+    assertResult(1, "Duplicated project detected\n" + analyzedPlan) {
+      analyzedPlan.collect {
+        case _: Project => ()
+      }.size
+    }
+  }
+
   test("SPARK-3810: PreprocessTableInsertion dynamic partitioning support") {
     val analyzedPlan = {
       loadTestTable("srcpart")
